@@ -23,11 +23,14 @@ namespace YouTubeThumb
             ".jpg", ".jpeg", ".jiff", ".jfif", ".png", ".gif", ".ico", ".svg", ".bmp", ".dib", ".tif", ".tiff"
         });
 
+        private string downloadTempDir = Path.GetTempPath() + "ytthumb\\";
+
         private WebClient downloader = new WebClient();
 
         public YouTubeThumb()
         {
             InitializeComponent();
+            images_RMB.Renderer = new patch.fixedControls.BetterToolStripRenderer(Color.Cyan);
             downloader.Headers.Add("user-agent", "ythumb.exe");
         }
 
@@ -41,15 +44,16 @@ namespace YouTubeThumb
 
         #region func
 
-        private void print(string text)
+        private void print(string text, bool tab = false)
         {
             this.Invoke((MethodInvoker)delegate
             {
-                txt_output.Text += text + Environment.NewLine;
+                txt_output.Text += (tab ? "  " : "") + text + Environment.NewLine;
                 txt_output.SelectionStart = txt_output.Text.Length;
                 txt_output.ScrollToCaret();
             });
         }
+
         private bool downloadThumb_isBusy = false;
         private void downloadThumb(string url)
         {
@@ -58,30 +62,32 @@ namespace YouTubeThumb
                 if (downloadThumb_isBusy) { return; }
                 downloadThumb_isBusy = true;
 
-              //if (!url.Contains("www.youtube.com"))                  { print("ERROR: invalid youtube URL: " + url); downloadThumb_isBusy = false; return; }
-                if (!Uri.IsWellFormedUriString(url, UriKind.Absolute)) { print("ERROR: invalid URL: " + url);         downloadThumb_isBusy = false; return; }
-
-                print("DOWNLOADING HTML........: " + url);
-
-                byte[] html = null;
-                try { html = downloader.DownloadData(url); }
-                catch (WebException e)          { print("ERROR: " + e.Message); downloadThumb_isBusy = false; return; }
-                catch (ArgumentNullException e) { print("ERROR: " + e.Message); downloadThumb_isBusy = false; return; }
-
-                print("DOWNLOADED HTML.........: " + ROund(html.Length) + " (" + html.Length + " bytes)");
-                print("SEARCHING HTML FOR THUMBNAIL URL...");
-
-                string[] links = getLinks(html);
-                foreach (string link in links)
+                try
                 {
-                    if (Uri.IsWellFormedUriString(link, UriKind.Absolute) && URLisImage(link))
-                    {
-                        print("DOWNLOADING IMAGE...: " + link);
+                  //if (!url.Contains("www.youtube.com"))                  { print("ERROR: invalid youtube URL: " + url); throw new ArgumentException("Not a yotubue url", "original"); }
+                    if (!Uri.IsWellFormedUriString(url, UriKind.Absolute)) { print("ERROR: invalid URL: " + url);         throw new ArgumentException("Not valid url", "original");     }
 
+                    print(url + " {");
+
+                    byte[] html = html = downloader.DownloadData(url);
+                    print("> Searching HTML for images...", true);
+
+                    int count = 0;
+                    string[] links = getLinks(html);
+                    List<string> validLinks = new List<string>();
+                    foreach (string link in links)
+                    {
+                        if (!Uri.IsWellFormedUriString(link, UriKind.Absolute)) { continue; }
+                        if (!URLisImage(link)) { continue; }
+                        validLinks.Add(link);
+                    }
+                    print("> found " + validLinks.Count + " URL(s)", true);
+                    int pad = validLinks.Count.ToString().Length;
+                    foreach (string link in validLinks)
+                    {
                         string filename = Path.GetFileName(new Uri(link).LocalPath);
-                        string tempDir = Path.GetTempPath() + "ytthumb\\";
-                        if (!Directory.Exists(tempDir)) { Directory.CreateDirectory(tempDir); }
-                        string savePath = tempDir + filename;
+                        if (!Directory.Exists(downloadTempDir)) { Directory.CreateDirectory(downloadTempDir); }
+                        string savePath = downloadTempDir + filename;
 
                         if (File.Exists(savePath))
                         {
@@ -89,29 +95,38 @@ namespace YouTubeThumb
                             int c = 1;
                             savePath = fi.FullName.Remove(fi.FullName.Length - fi.Extension.Length, fi.Extension.Length) + " [" + c + "]" + fi.Extension;
                             while (File.Exists(savePath))
-                            { c++;savePath = fi.FullName.Remove(fi.FullName.Length - fi.Extension.Length, fi.Extension.Length) + " [" + c + "]" + fi.Extension; }
+                            { c++; savePath = fi.FullName.Remove(fi.FullName.Length - fi.Extension.Length, fi.Extension.Length) + " [" + c + "]" + fi.Extension; }
                         }
 
                         downloader.DownloadFile(link, savePath);
+                        count++;
 
-                        print("DOWNLOADED IMAGE....: " + link);
+                        print("> " + count.ToString().PadLeft(pad, ' ') + ": " + link, true);
 
                         Image img = Image.FromFile(savePath);
                         int size = Math.Max(img.Width, img.Height);
                         Bitmap bmpDrawOn = new Bitmap(size, size);
-                        using (Graphics g = Graphics.FromImage(bmpDrawOn)) { g.Clear(Color.Transparent); g.DrawImage(img, 0, 0); }
+                        using (Graphics g = Graphics.FromImage(bmpDrawOn))
+                        { g.Clear(Color.Transparent); g.DrawImage(img, 0, 0); }
                         img.Dispose();
 
                         this.Invoke((MethodInvoker)delegate
                         {
                             imageList.Images.Add(bmpDrawOn);
-                            ListViewItem lvi = new ListViewItem() { Name = savePath, Text = Path.GetFileName(savePath), ImageIndex = imageList.Images.Count - 1 };
-                            images.Items.Add(lvi);
+                            images.Items.Add(
+                                new ListViewItem()
+                                {
+                                    Name = savePath,
+                                    Text = Path.GetFileName(savePath),
+                                    ImageIndex = imageList.Images.Count - 1
+                                }
+                            );
                         });
                     }
-                }
 
-                print("DONE!");
+                    print("}");
+                }
+                catch (Exception) { }
 
                 downloadThumb_isBusy = false;
             })
@@ -138,6 +153,17 @@ namespace YouTubeThumb
 
         #region UI events
 
+        #region Draw
+
+        private void HelpBallon_Draw(object sender, DrawToolTipEventArgs e)
+        {
+            e.DrawBackground();
+            e.DrawBorder();
+            e.DrawText();
+        }
+
+        #endregion
+
         private void images_open()
         {
             foreach (ListViewItem item in images.SelectedItems)
@@ -155,13 +181,23 @@ namespace YouTubeThumb
                 if (item.Name == null) { continue; }
                 string text = item.Name;
                 if (string.IsNullOrEmpty(text)) { continue; }
-                OpenAndSelectInExplorer(text);
+                ExplorerSelect(text);
             }
         }
 
-        private void btn_dl_Click(object sender, EventArgs e)
+        private void btn_find_Click(object sender, EventArgs e)
         {
             downloadThumb(txt_url.Text);
+        }
+        private void btn_clear_Click(object sender, EventArgs e)
+        {
+            txt_output.Text = "";
+            images.Items.Clear();
+            imageList.Images.Clear();
+        }
+        private void btn_folder_Click(object sender, EventArgs e)
+        {
+            Explorer(downloadTempDir);
         }
         private void txt_url_KeyDown(object sender, KeyEventArgs e)
         {
@@ -242,18 +278,7 @@ namespace YouTubeThumb
             foreach (string type in ImageTypes) { if (url.Contains(type)) { return true; } }
             return false;
         }
-        private string ROund(double len)
-        {
-            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
-            int order = 0;
-            while (len >= 1024 && order < sizes.Length - 1)
-            {
-                order++;
-                len = len / 1024;
-            }
-            return string.Format("{0:0.##} {1}", len, sizes[order]);
-        }
-        public bool OpenFile(string file)
+        private bool OpenFile(string file)
         {
             if (!File.Exists(file)) { print("ERROR: can't find file"); return false; }
             try { Process.Start(file); }
@@ -262,20 +287,30 @@ namespace YouTubeThumb
             catch (FileNotFoundException e)   { print("ERROR: " + e.Message); }
             catch (Exception e)               { print("ERROR: " + e.Message); }
 
-            print("OPENED: " + file);
+            print("Open: " + file);
             return true;
         }
-        public bool OpenAndSelectInExplorer(string file)
+        private bool Explorer(string dir)
+        {
+            try { Process.Start("explorer.exe", "\"" + dir + "\""); }
+            catch (Win32Exception e)          { print("ERROR: " + e.Message); }
+            catch (ObjectDisposedException e) { print("ERROR: " + e.Message); }
+            catch (FileNotFoundException e)   { print("ERROR: " + e.Message); }
+            catch (Exception e)               { print("ERROR: " + e.Message); }
+            print("Explorer: " + dir);
+            return true;
+        }
+        private bool ExplorerSelect(string file)
         {
             try { Process.Start("explorer.exe", "/select,\"" + file + "\""); }
             catch (Win32Exception e)          { print("ERROR: " + e.Message); }
             catch (ObjectDisposedException e) { print("ERROR: " + e.Message); }
             catch (FileNotFoundException e)   { print("ERROR: " + e.Message); }
             catch (Exception e)               { print("ERROR: " + e.Message); }
-
-            print("EXPLORER: " + file);
+            print("Explorer Select: " + file);
             return true;
         }
+
 
         #endregion
     }
