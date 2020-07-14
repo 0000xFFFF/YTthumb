@@ -34,9 +34,9 @@
             this.btn_dl = new System.Windows.Forms.Button();
             this.HelpBallon = new System.Windows.Forms.ToolTip(this.components);
             this.label_url = new System.Windows.Forms.Label();
-            this.images = new YouTubeThumb.FixedListView();
+            this.images = new fixedControls.FixedListView();
             this.imageList = new System.Windows.Forms.ImageList(this.components);
-            this.txt_output = new YouTubeThumb.FixedRichTextBox();
+            this.txt_output = new fixedControls.FixedRichTextBox();
             this.images_RMB = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.images_RMB_explorer = new System.Windows.Forms.ToolStripMenuItem();
             this.sc = new System.Windows.Forms.SplitContainer();
@@ -219,9 +219,9 @@
         private System.Windows.Forms.Button btn_dl;
         private System.Windows.Forms.ToolTip HelpBallon;
         private System.Windows.Forms.Label label_url;
-        private YouTubeThumb.FixedListView images;
+        private fixedControls.FixedListView images;
         private System.Windows.Forms.ImageList imageList;
-        private YouTubeThumb.FixedRichTextBox txt_output;
+        private fixedControls.FixedRichTextBox txt_output;
         private System.Windows.Forms.ContextMenuStrip images_RMB;
         private System.Windows.Forms.ToolStripMenuItem images_RMB_explorer;
         private System.Windows.Forms.SplitContainer sc;

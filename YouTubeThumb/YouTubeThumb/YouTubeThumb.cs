@@ -105,7 +105,7 @@ namespace YouTubeThumb
                         this.Invoke((MethodInvoker)delegate
                         {
                             imageList.Images.Add(bmpDrawOn);
-                            ListViewItem lvi = new ListViewItem() { Name = savePath, Text = filename, ImageIndex = imageList.Images.Count - 1 };
+                            ListViewItem lvi = new ListViewItem() { Name = savePath, Text = Path.GetFileName(savePath), ImageIndex = imageList.Images.Count - 1 };
                             images.Items.Add(lvi);
                         });
                     }
@@ -131,7 +131,7 @@ namespace YouTubeThumb
                 }
                 else if (afterQuote) { link = link + ch; }
             }
-            return links.ToArray();
+            return links.Distinct().ToArray();
         }
 
         #endregion
@@ -275,40 +275,6 @@ namespace YouTubeThumb
 
             print("EXPLORER: " + file);
             return true;
-        }
-
-        #endregion
-
-        #region custom controls (patches)
-
-        public class FixedListView : ListView
-        {
-            public FixedListView()
-            {
-                this.SetStyle(ControlStyles.ResizeRedraw | ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.EnableNotifyMessage, true);
-            }
-
-            protected override void OnNotifyMessage(Message m)
-            {
-                //Filter out the WM_ERASEBKGND message
-                if (m.Msg != 0x14)
-                {
-                    base.OnNotifyMessage(m);
-                }
-            }
-        }
-
-        public class FixedRichTextBox : RichTextBox
-        {
-            protected override void OnHandleCreated(EventArgs e)
-            {
-                base.OnHandleCreated(e);
-                if (!base.AutoWordSelection)
-                {
-                    base.AutoWordSelection = true;
-                    base.AutoWordSelection = false;
-                }
-            }
         }
 
         #endregion

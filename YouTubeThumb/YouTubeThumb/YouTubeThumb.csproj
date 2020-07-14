@@ -48,6 +48,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="fixedControls.cs" />
     <Compile Include="YouTubeThumb.cs">
       <SubType>Form</SubType>
     </Compile>
