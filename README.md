@@ -1,5 +1,5 @@
 # YTthumb
-#### YouTube thumbnail downloader (C#, GUI)
+#### YouTube thumbnail downloader (C#, GUI - WinForms)
 
 # Download
 \[[here](https://github.com/0xC0LD/YTthumb/raw/master/YouTubeThumb/YouTubeThumb/bin/Release/YouTubeThumb.exe)\]
